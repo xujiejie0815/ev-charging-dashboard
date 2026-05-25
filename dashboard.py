@@ -30,7 +30,7 @@ _deploy = os.path.join(os.path.dirname(__file__), "data", "all_facilities_usage_
 DATA_PATH = _local if os.path.exists(_local) else _deploy
 
 @st.cache_data(ttl=3600)
-def load_data():  # v2026-05b
+def load_data():  # v2026-05c
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     df["充電器グループID"] = df["充電器グループID"].astype(str)
     df["year"] = df["利用月"].str.extract(r"(\d{4})-").astype(int)
@@ -45,10 +45,6 @@ def load_data():  # v2026-05b
     df["稼働率_pct"] = pd.to_numeric(
         df["稼働率"].astype(str).str.replace("%", "").str.strip(), errors="coerce"
     ).fillna(0)
-    # 再計算（稼働開始日以降のみ正の稼働率を許容）
-    df["稼働率_calc"] = (
-        df["稼働時間(分)"] / (df["日数"] * 24 * 60 * df["台数"]) * 100
-    ).clip(lower=0).round(2)
     df["ブランド"] = df["ブランド"].fillna("").astype(str)
     df["運営会社"] = df["運営会社"].fillna("").astype(str)
     # 稼働終了日を datetime に変換
@@ -56,8 +52,11 @@ def load_data():  # v2026-05b
         df["稼働終了日(手動)"].astype(str).str.strip().replace("", pd.NA),
         errors="coerce"
     )
-    # 稼働率計算用の分母
-    df["稼働可能分"] = df["日数"] * 24 * 60 * df["台数"]
+    # 稼働率計算用の分母：カレンダー日数（月の暦上の全日数）× 台数
+    df["稼働可能分"] = df["date"].dt.days_in_month * 24 * 60 * df["台数"]
+    df["稼働率_calc"] = (
+        df["稼働時間(分)"] / df["稼働可能分"] * 100
+    ).clip(lower=0).round(2)
     return df
 
 df_all = load_data()
@@ -231,6 +230,7 @@ with tab1:
             height=420,
             hovermode="x unified",
             showlegend=False,
+            xaxis=dict(dtick="M1", tickformat="%Y-%m", ticklabelmode="period", tickangle=-45),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -325,6 +325,7 @@ with tab2:
             title=f"月次 稼働率（%）加重平均（{group_by}別フィルター適用）",
             xaxis_title="月",
             yaxis_title="稼働率（%）",
+            xaxis=dict(dtick="M1", tickformat="%Y-%m", ticklabelmode="period", tickangle=-45),
         )
     else:
         n_groups = monthly_g[group_by].nunique()
@@ -343,7 +344,10 @@ with tab2:
             textposition="auto",
             textfont_size=9,
         )
-    fig_trend.update_layout(height=400, hovermode="x unified")
+    fig_trend.update_layout(
+        height=400, hovermode="x unified",
+        xaxis=dict(dtick="M1", tickformat="%Y-%m", ticklabelmode="period", tickangle=-45),
+    )
     st.plotly_chart(fig_trend, use_container_width=True)
 
     st.divider()
