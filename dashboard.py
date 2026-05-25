@@ -122,7 +122,8 @@ c1, c2, c3, c4 = st.columns(4)
 c1.metric("総利用回数", f"{int(active['利用回数'].sum()):,} 回")
 c2.metric("総利用人数", f"{int(active['利用人数'].sum()):,} 人")
 c3.metric("総稼働時間", f"{active['稼働時間_h'].sum():,.0f} 時間")
-c4.metric("平均稼働率", f"{active['稼働率_calc'].mean():.1f} %")
+avg_rate = active['稼働率_calc'].mean()
+c4.metric("平均稼働率", f"{avg_rate:.1f} %" if pd.notna(avg_rate) else "— %")
 
 st.divider()
 
@@ -139,18 +140,19 @@ with tab1:
         .drop_duplicates("充電器グループID")
         .copy()
     )
-    name_counts = fac_meta["施設名"].value_counts()
-    fac_meta["label"] = fac_meta.apply(
-        lambda r: f"{r['施設名']} [{r['モデル']}]"
-        if name_counts[r["施設名"]] > 1 else r["施設名"],
-        axis=1,
-    )
-    fac_meta = fac_meta.sort_values("label")
-    label_to_gid = dict(zip(fac_meta["label"], fac_meta["充電器グループID"]))
-
     if fac_meta.empty:
         st.warning("条件に合う施設がありません。")
     else:
+        name_counts = fac_meta["施設名"].value_counts()
+        labels = fac_meta.apply(
+            lambda r: f"{r['施設名']} [{r['モデル']}]"
+            if name_counts.get(r["施設名"], 0) > 1 else r["施設名"],
+            axis=1,
+        )
+        fac_meta = fac_meta.copy()
+        fac_meta["label"] = labels.values
+        fac_meta = fac_meta.sort_values("label")
+        label_to_gid = dict(zip(fac_meta["label"], fac_meta["充電器グループID"]))
         sel_label = st.selectbox("施設名", fac_meta["label"].tolist(), key="fac_select")
         sel_gid = label_to_gid[sel_label]
         df_fac = df_filtered[df_filtered["充電器グループID"] == sel_gid].sort_values("date")
