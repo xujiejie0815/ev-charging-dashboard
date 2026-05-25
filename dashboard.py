@@ -299,37 +299,30 @@ with tab2:
     }
 
     if use_line2:
-        fig_trend = px.line(
-            monthly_g,
-            x="date",
-            y=y_col2,
-            color=group_by,
-            title=f"月次 {metric2}（{group_by}別）",
-            labels={"date": "月", y_col2: metric2},
-            markers=True,
-            text=monthly_g[y_col2].apply(text_fmt[metric2]),
+        # 稼働率は加重平均のみ1本線で表示
+        overall = (
+            df_filtered.groupby("date")
+            .agg(_m=("稼働時間(分)", "sum"), _p=("稼働可能分", "sum"))
+            .reset_index()
         )
-        fig_trend.update_traces(textposition="top center", textfont_size=10)
-
-        # 稼働率のみ：全体加重平均ラインを追加
-        if metric2 == "稼働率（%）" and monthly_g[group_by].nunique() > 1:
-            overall = (
-                df_filtered.groupby("date")
-                .agg(_m=("稼働時間(分)", "sum"), _p=("稼働可能分", "sum"))
-                .reset_index()
-            )
-            overall["稼働率（%）"] = (overall["_m"] / overall["_p"] * 100).clip(lower=0).round(2)
-            fig_trend.add_scatter(
-                x=overall["date"],
-                y=overall["稼働率（%）"],
-                mode="lines+markers+text",
-                name="全体加重平均",
-                line=dict(color="black", width=2, dash="dash"),
-                marker=dict(size=5, symbol="diamond"),
-                text=overall["稼働率（%）"].apply(lambda v: f"{v:.2f}%"),
-                textposition="bottom center",
-                textfont=dict(size=9, color="black"),
-            )
+        overall["稼働率（%）"] = (overall["_m"] / overall["_p"] * 100).clip(lower=0).round(2)
+        fig_trend = go.Figure()
+        fig_trend.add_scatter(
+            x=overall["date"],
+            y=overall["稼働率（%）"],
+            mode="lines+markers+text",
+            name="加重平均",
+            line=dict(color="#3B82F6", width=2),
+            marker=dict(size=6),
+            text=overall["稼働率（%）"].apply(lambda v: f"{v:.2f}%"),
+            textposition="top center",
+            textfont=dict(size=10),
+        )
+        fig_trend.update_layout(
+            title=f"月次 稼働率（%）加重平均（{group_by}別フィルター適用）",
+            xaxis_title="月",
+            yaxis_title="稼働率（%）",
+        )
     else:
         n_groups = monthly_g[group_by].nunique()
         fig_trend = px.bar(
@@ -378,6 +371,22 @@ with tab2:
     summary.columns = [group_by, "施設数", "総台数", "総稼働時間(時間)", "総利用回数", "総利用人数", "稼働率(%)"]
     summary["総稼働時間(時間)"] = summary["総稼働時間(時間)"].round(1)
     summary = summary.sort_values("総利用回数", ascending=False).reset_index(drop=True)
+
+    # 全体加重平均行を追加
+    total_units = df_filtered.groupby("充電器グループID")["台数"].max().sum()
+    total_rate = (
+        df_filtered["稼働時間(分)"].sum() / df_filtered["稼働可能分"].sum() * 100
+    ).round(2)
+    total_row = pd.DataFrame([{
+        group_by:        "【全体加重平均】",
+        "施設数":         df_filtered["充電器グループID"].nunique(),
+        "総台数":         int(total_units),
+        "総稼働時間(時間)": round(df_filtered["稼働時間_h"].sum(), 1),
+        "総利用回数":      int(df_filtered["利用回数"].sum()),
+        "総利用人数":      int(df_filtered["利用人数"].sum()),
+        "稼働率(%)":      total_rate,
+    }])
+    summary = pd.concat([summary, total_row], ignore_index=True)
 
     # テーブル（フォーマット統一）
     st.dataframe(
