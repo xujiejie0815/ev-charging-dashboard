@@ -333,14 +333,13 @@ with tab2:
             title=f"月次 {metric2}（{group_by}別）",
             labels={"date": "月", y_col2: metric2},
             barmode="stack",
-            text=y_col2 if n_groups == 1 else None,
+            text=y_col2,
         )
-        if n_groups == 1:
-            fig_trend.update_traces(
-                texttemplate=tmpl_fmt[metric2],
-                textposition="outside",
-                textfont_size=10,
-            )
+        fig_trend.update_traces(
+            texttemplate=tmpl_fmt[metric2],
+            textposition="auto",
+            textfont_size=9,
+        )
     fig_trend.update_layout(height=400, hovermode="x unified")
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -412,7 +411,9 @@ with tab2:
             color=group_by,
             title=f"{group_by}別 総利用回数",
             color_discrete_sequence=px.colors.qualitative.Set2,
+            text="総利用回数",
         )
+        fig_bar.update_traces(texttemplate="%{y:,.0f}", textposition="outside", textfont_size=10)
         fig_bar.update_layout(height=350, showlegend=False)
         st.plotly_chart(fig_bar, use_container_width=True)
     with c_right:
@@ -422,6 +423,10 @@ with tab2:
             names=group_by,
             title=f"{group_by}別 稼働時間シェア",
             hole=0.4,
+        )
+        fig_pie.update_traces(
+            texttemplate="%{label}<br>%{value:,.0f}h (%{percent:.1%})",
+            textposition="auto",
         )
         fig_pie.update_layout(height=350)
         st.plotly_chart(fig_pie, use_container_width=True)
@@ -436,7 +441,9 @@ with tab2:
             title=f"{group_by}別 稼働率",
             color="稼働率(%)",
             color_continuous_scale="Blues",
+            text="稼働率(%)",
         )
+        fig_util.update_traces(texttemplate="%{x:.2f}%", textposition="outside", textfont_size=10)
         fig_util.update_layout(height=350, showlegend=False)
         st.plotly_chart(fig_util, use_container_width=True)
     with c_right2:
@@ -447,7 +454,9 @@ with tab2:
             color=group_by,
             title=f"{group_by}別 総利用人数",
             color_discrete_sequence=px.colors.qualitative.Pastel,
+            text="総利用人数",
         )
+        fig_users.update_traces(texttemplate="%{y:,.0f}", textposition="outside", textfont_size=10)
         fig_users.update_layout(height=350, showlegend=False)
         st.plotly_chart(fig_users, use_container_width=True)
 
