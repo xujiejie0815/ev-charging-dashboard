@@ -401,11 +401,13 @@ with tab2:
         },
     )
 
-    # 比較チャート群
+    # 比較チャート群（【全体加重平均】行を除外）
+    summary_chart = summary[summary[group_by] != "【全体加重平均】"]
+
     c_left, c_right = st.columns(2)
     with c_left:
         fig_bar = px.bar(
-            summary,
+            summary_chart,
             x=group_by,
             y="総利用回数",
             color=group_by,
@@ -418,7 +420,7 @@ with tab2:
         st.plotly_chart(fig_bar, use_container_width=True)
     with c_right:
         fig_pie = px.pie(
-            summary,
+            summary_chart,
             values="総稼働時間(時間)",
             names=group_by,
             title=f"{group_by}別 稼働時間シェア",
@@ -434,7 +436,7 @@ with tab2:
     c_left2, c_right2 = st.columns(2)
     with c_left2:
         fig_util = px.bar(
-            summary.sort_values("稼働率(%)"),
+            summary_chart.sort_values("稼働率(%)"),
             x="稼働率(%)",
             y=group_by,
             orientation="h",
@@ -448,7 +450,7 @@ with tab2:
         st.plotly_chart(fig_util, use_container_width=True)
     with c_right2:
         fig_users = px.bar(
-            summary,
+            summary_chart,
             x=group_by,
             y="総利用人数",
             color=group_by,
