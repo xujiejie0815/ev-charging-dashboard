@@ -222,7 +222,7 @@ with tab1:
             )
 
         fig.update_layout(
-            title=f"{sel_fac} ／ 月次 {metric_opt}",
+            title=f"{sel_label} ／ 月次 {metric_opt}",
             xaxis_title="月",
             yaxis_title=metric_opt,
             height=420,
