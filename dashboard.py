@@ -72,8 +72,6 @@ df_base = df_all[
     df_all["稼働終了日_dt"].isna() | (df_all["date"] <= df_all["稼働終了日_dt"])
 ].copy()
 
-# 期間フィルター（2025-12まで）
-df_base = df_base[df_base["date"] <= pd.Timestamp("2025-12-01")]
 
 # カスケードフィルター（複数選択可・未選択=すべて）
 sel_cats = st.sidebar.multiselect(
