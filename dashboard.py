@@ -30,7 +30,7 @@ _deploy = os.path.join(os.path.dirname(__file__), "data", "all_facilities_usage_
 DATA_PATH = _local if os.path.exists(_local) else _deploy
 
 @st.cache_data(ttl=3600)
-def load_data():  # v2026-05c
+def load_data():  # v2026-05d
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     df["充電器グループID"] = df["充電器グループID"].astype(str)
     df["year"] = df["利用月"].str.extract(r"(\d{4})-").astype(int)
@@ -52,8 +52,13 @@ def load_data():  # v2026-05c
         df["稼働終了日(手動)"].astype(str).str.strip().replace("", pd.NA),
         errors="coerce"
     )
-    # 稼働率計算用の分母：カレンダー日数（月の暦上の全日数）× 台数
-    df["稼働可能分"] = df["date"].dt.days_in_month * 24 * 60 * df["台数"]
+    # 稼働率計算用の分母：カレンダー日数 × 台数（当月のみ経過日数を使用）
+    _today = pd.Timestamp.now()
+    _cur_month = pd.Timestamp(_today.year, _today.month, 1)
+    _elapsed = _today.day
+    _cal_days = df["date"].dt.days_in_month.copy()
+    _cal_days = _cal_days.where(df["date"] != _cur_month, _elapsed)
+    df["稼働可能分"] = _cal_days * 24 * 60 * df["台数"]
     df["稼働率_calc"] = (
         df["稼働時間(分)"] / df["稼働可能分"] * 100
     ).clip(lower=0).round(2)
