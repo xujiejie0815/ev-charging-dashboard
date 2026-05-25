@@ -310,6 +310,26 @@ with tab2:
             text=monthly_g[y_col2].apply(text_fmt[metric2]),
         )
         fig_trend.update_traces(textposition="top center", textfont_size=10)
+
+        # 稼働率のみ：全体加重平均ラインを追加
+        if metric2 == "稼働率（%）" and monthly_g[group_by].nunique() > 1:
+            overall = (
+                df_filtered.groupby("date")
+                .agg(_m=("稼働時間(分)", "sum"), _p=("稼働可能分", "sum"))
+                .reset_index()
+            )
+            overall["稼働率（%）"] = (overall["_m"] / overall["_p"] * 100).clip(lower=0).round(2)
+            fig_trend.add_scatter(
+                x=overall["date"],
+                y=overall["稼働率（%）"],
+                mode="lines+markers+text",
+                name="全体加重平均",
+                line=dict(color="black", width=2, dash="dash"),
+                marker=dict(size=5, symbol="diamond"),
+                text=overall["稼働率（%）"].apply(lambda v: f"{v:.2f}%"),
+                textposition="bottom center",
+                textfont=dict(size=9, color="black"),
+            )
     else:
         n_groups = monthly_g[group_by].nunique()
         fig_trend = px.bar(
