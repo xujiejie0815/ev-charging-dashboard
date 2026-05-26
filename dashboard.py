@@ -389,7 +389,7 @@ with tab2:
         df_filtered["稼働時間(分)"].sum() / df_filtered["稼働可能分"].sum() * 100
     ).round(2)
     total_row = pd.DataFrame([{
-        group_by:        "【全体加重平均】",
+        group_by:        "【全体合計】",
         "施設数":         df_filtered["充電器グループID"].nunique(),
         "総台数":         int(total_units),
         "総稼働時間(時間)": round(df_filtered["稼働時間_h"].sum(), 1),
@@ -414,7 +414,7 @@ with tab2:
     )
 
     # 比較チャート群（【全体加重平均】行を除外）
-    summary_chart = summary[summary[group_by] != "【全体加重平均】"]
+    summary_chart = summary[summary[group_by] != "【全体合計】"]
 
     c_left, c_right = st.columns(2)
     with c_left:
