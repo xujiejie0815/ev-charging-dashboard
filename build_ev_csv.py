@@ -40,6 +40,24 @@ else:
 
 wb = openpyxl.load_workbook(XLSX_PATH, read_only=True, data_only=True)
 
+# ── 0b. 承継リスト から稼働終了日を読み込む ───────────────────────────────
+# 利用履歴の稼働終了日(手動)列はVLOOKUP数式のため、XLSX出力時にキャッシュ値がNoneになる。
+# 承継リスト シート (Col G = GID, Col H = 最終営業日) を直接参照して補完する。
+承継_end = {}  # gid_str → datetime
+if '承継リスト' in wb.sheetnames:
+    ws_shokei = wb['承継リスト']
+    shokei_rows = list(ws_shokei.iter_rows(values_only=True))
+    for r in shokei_rows[4:]:  # 行0-3はヘッダー
+        if len(r) <= 7:
+            continue
+        key = r[6]   # Col G = GID (VLOOKUP キー)
+        end_dt = r[7]  # Col H = 最終営業日
+        if key is not None and end_dt is not None and isinstance(end_dt, datetime):
+            gid_str = str(int(key))
+            if gid_str not in 承継_end:
+                承継_end[gid_str] = end_dt
+    print(f"承継リスト: {len(承継_end)} GIDs with termination dates loaded")
+
 # ── 1. 施設P マスタ読み込み ──────────────────────────────────────
 ws_fac = wb['施設P']
 fac_rows = list(ws_fac.iter_rows(values_only=True))
@@ -243,12 +261,23 @@ for gid, fac in sorted(facilities.items(), key=lambda x: int(x[0])):
     end_ym_for_gid = get_end_ym_for_gid(gid, usage)
     if end_ym_for_gid is None:
         end_ym_for_gid = get_end_ym_for_gid(gid, raw_usage)
+    # 承継リストの最終営業日で上書き（利用履歴の数式値がNoneになるケースを補完）
+    if gid in 承継_end:
+        shokei_dt = 承継_end[gid]
+        shokei_ym = (shokei_dt.year, shokei_dt.month)
+        if end_ym_for_gid is None or shokei_ym < end_ym_for_gid:
+            end_ym_for_gid = shokei_ym
     cap_end = end_ym_for_gid if end_ym_for_gid else END_YM
     cap_end = min(cap_end, END_YM)
 
     end_dt_full = get_end_dt_for_gid(gid, usage)
     if end_dt_full is None:
         end_dt_full = get_end_dt_for_gid(gid, raw_usage)
+    # 承継リストの日付を end_dt_full にも反映
+    if gid in 承継_end:
+        shokei_dt = 承継_end[gid]
+        if end_dt_full is None or shokei_dt < end_dt_full:
+            end_dt_full = shokei_dt
 
     end_dt_str = ''
     for ym_key, row in src.items():
@@ -257,6 +286,11 @@ for gid, fac in sorted(facilities.items(), key=lambda x: int(x[0])):
             e_val = row['稼働終了日(手動)']
             end_dt_str = dt_to_str(e_val)
             break
+    # 承継リストの終了日が利用履歴より早ければ上書き
+    if gid in 承継_end:
+        shokei_str = dt_to_str(承継_end[gid])
+        if not end_dt_str or shokei_str < end_dt_str:
+            end_dt_str = shokei_str
 
     rel_str = dt_to_str(fac['release_dt'])
     # 稼働開始日前のテスト利用は除外
