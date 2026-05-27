@@ -30,7 +30,7 @@ _deploy = os.path.join(os.path.dirname(__file__), "data", "all_facilities_usage_
 DATA_PATH = _local if os.path.exists(_local) else _deploy
 
 @st.cache_data(ttl=3600)
-def load_data():  # v2026-05e
+def load_data():  # v2026-05d
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     df["充電器グループID"] = df["充電器グループID"].astype(str)
     df["year"] = df["利用月"].str.extract(r"(\d{4})-").astype(int)
@@ -112,9 +112,8 @@ date_range = st.sidebar.slider(
 # スライダーは月の途中の日付を返すため、月頭に丸めてから比較
 _start = pd.Timestamp(date_range[0].year, date_range[0].month, 1)
 _end   = pd.Timestamp(date_range[1].year, date_range[1].month, 1)
-_active_mask = df_f3["稼働終了日_dt"].isna() | (df_f3["稼働終了日_dt"] >= _start)
 df_filtered = df_f3[
-    (df_f3["date"] >= _start) & (df_f3["date"] <= _end) & _active_mask
+    (df_f3["date"] >= _start) & (df_f3["date"] <= _end)
 ]
 
 # ===== ヘッダー =====
