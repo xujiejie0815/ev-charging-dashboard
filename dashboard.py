@@ -30,7 +30,7 @@ _deploy = os.path.join(os.path.dirname(__file__), "data", "all_facilities_usage_
 DATA_PATH = _local if os.path.exists(_local) else _deploy
 
 @st.cache_data(ttl=3600)
-def load_data():  # v2026-05d
+def load_data():  # v2026-05f
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
     df["充電器グループID"] = df["充電器グループID"].astype(str)
     df["year"] = df["利用月"].str.extract(r"(\d{4})-").astype(int)
