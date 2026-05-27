@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 
-st.set_page_config(page_title="EV充電 利用状況ダッシュボード", layout="wide")
+st.set_page_config(page_title="EV充電 利用状況ダッシュボード 2026", layout="wide")
 
 # ===== パスワード認証 =====
 def check_password():

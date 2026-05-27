@@ -1,0 +1,40 @@
+name: Daily data update (noon JST)
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC = 12:00 JST
+  workflow_dispatch:        # 手動実行ボタン
+
+jobs:
+  update-csv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install openpyxl pandas
+
+      - name: Download XLSX and build CSV
+        env:
+          XLSX_PATH: /tmp/spreadsheet_ev.xlsx
+          OUT_PATH:  data/all_facilities_usage_v5.csv
+        run: python build_ev_csv.py
+
+      - name: Commit updated CSV
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/all_facilities_usage_v5.csv
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: daily data refresh $(date -u +'%Y-%m-%d')"
+            git push
+          fi
