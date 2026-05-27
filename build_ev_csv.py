@@ -258,13 +258,9 @@ for gid, fac in sorted(facilities.items(), key=lambda x: int(x[0])):
             end_dt_str = dt_to_str(e_val)
             break
 
-    if src:
-        earliest_actual = min(src.keys())
-    else:
-        earliest_actual = release_ym
-
-    start_ym_gen = min(earliest_actual, release_ym)
     rel_str = dt_to_str(fac['release_dt'])
+    # 稼働開始日前のテスト利用は除外
+    start_ym_gen = release_ym
 
     y, m = start_ym_gen
     while (y, m) <= cap_end:
